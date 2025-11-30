@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:resistencia_juego/screens/pantalla_instrucciones.dart';
 import 'resistor_data.dart';
+import 'pantalla_pista.dart';
 import '../widgets/resistor_painter.dart';
 import '../widgets/color_pallette.dart';
 
@@ -35,6 +37,16 @@ class _PantallaJuegoState extends State<PantallaJuego> {
     });
   }
 
+  // Restablece la resistencia actual (mismo nivel)
+  void _resetCurrentChallenge() {
+    setState(() {
+      userBands = ['none', 'none', 'none', 'none'];
+      currentBandIndex = 0;
+      feedbackMessage = null;
+      isCorrect = false;
+    });
+  }
+
   // Maneja el color soltado en una banda
   void _handleBandDrop(String colorKey, int bandIndex) {
     if (bandIndex == currentBandIndex) {
@@ -46,6 +58,30 @@ class _PantallaJuegoState extends State<PantallaJuego> {
         }
         feedbackMessage = null;
       });
+    }
+  }
+
+  // Maneja la selección directa de color desde la paleta
+  void _handleColorTap(String colorKey) {
+    if (currentBandIndex < 4) {
+      setState(() {
+        userBands[currentBandIndex] = colorKey;
+        if (currentBandIndex < 3) {
+          currentBandIndex++;
+        }
+        feedbackMessage = null;
+      });
+    }
+  }
+
+  // Obtiene el valor formateado de las bandas del usuario
+  String _getUserResistorValue() {
+    try {
+      // Convertir las bandas del usuario a valor de resistencia
+      final userResistor = ResistorChallenge.calculateResistorValue(userBands);
+      return userResistor.formattedValue;
+    } catch (e) {
+      return 'Valor inválido';
     }
   }
 
@@ -68,6 +104,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
         '¡CORRECTO!',
         'Has construido perfectamente la resistencia de ${challenge.formattedChallenge}.',
         Colors.green,
+        showComparison: false,
       );
     } else {
       setState(() {
@@ -76,23 +113,127 @@ class _PantallaJuegoState extends State<PantallaJuego> {
       });
       _showResultDialog(
         'INCORRECTO',
-        'El valor de la resistencia que construiste es incorrecto. Sigue intentando.',
+        'El valor de la resistencia que construiste no coincide con el objetivo.',
         Colors.red,
+        showComparison: true,
       );
     }
   }
 
   // Muestra un diálogo con el resultado y opción para siguiente nivel
-  void _showResultDialog(String title, String content, Color color) {
+  void _showResultDialog(String title, String content, Color color, {bool showComparison = false}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-          content: Text(content),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(content),
+              if (showComparison) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Tu resultado:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            _getUserResistorValue(),
+                            style: TextStyle(
+                              color: Colors.red[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Objetivo:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            challenge.formattedChallenge,
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Tus bandas:',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                Text(
+                                  _getBandNames(userBands),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Bandas correctas:',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                Text(
+                                  _getBandNames(challenge.correctBands),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Revisa las bandas y vuelve a intentarlo antes de continuar.',
+                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ],
+          ),
           actions: <Widget>[
+            if (showComparison)
+              TextButton(
+                child: const Text('REINTENTAR'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Permite al usuario corregir las bandas sin reiniciar el nivel
+                },
+              ),
             TextButton(
-              child: const Text('SIGUIENTE NIVEL'),
+              child: Text(showComparison ? 'SIGUIENTE NIVEL' : 'CONTINUAR'),
               onPressed: () {
                 Navigator.of(context).pop();
                 _startNewChallenge();
@@ -102,6 +243,14 @@ class _PantallaJuegoState extends State<PantallaJuego> {
         );
       },
     );
+  }
+
+  // Obtiene los nombres de las bandas para mostrar
+  String _getBandNames(List<String> bands) {
+    return bands.map((band) {
+      if (band == 'none') return 'Ninguna';
+      return colorBands[band]?.name ?? band;
+    }).join(' - ');
   }
 
   @override
@@ -125,7 +274,19 @@ class _PantallaJuegoState extends State<PantallaJuego> {
         title: const Text('Armar Resistencia', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF7E57C2),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.help),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PantallaInstrucciones()),
+              );
+            },
+          ),
+        ],
       ),
+      
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -190,18 +351,63 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                   ),
                 ),
 
-              // Botón REVISAR
-              ElevatedButton(
-                onPressed: _checkAnswer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7E57C2),
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'REVISAR',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              // Botones HINT y REVISAR
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PantallaPista()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 255, 234, 40),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: const Text('HINT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),),
+                    
+                  ),
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    onPressed: _checkAnswer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7E57C2),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 5,
+                    ),
+                    child: const Text(
+                      'REVISAR',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Botón RESTABLECER - debajo de los botones HINT y REVISAR
+              const SizedBox(height: 15),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  
+                  onPressed: _resetCurrentChallenge,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15,),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text(
+                    'RESTABLECER',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               
@@ -209,12 +415,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
 
               // Paleta de Colores
               ColorPalette(
-                onColorTap: (colorKey) {
-                  // Permite al usuario seleccionar rápidamente el color
-                  if (currentBandIndex < 4) {
-                    _handleBandDrop(colorKey, currentBandIndex);
-                  }
-                },
+                onColorTap: _handleColorTap,
                 currentBandIndex: currentBandIndex,
               ),
             ],
@@ -243,33 +444,53 @@ class ResistorInteractive extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: 120,
-      child: CustomPaint(
-        painter: ResistorPainter(bands: bands),
-        child: Row(
-          children: List.generate(4, (index) {
-            // Zonas de arrastre para cada banda
-            return Expanded(
-              flex: index == 3 ? 2 : 1, // La banda de tolerancia es más ancha visualmente
-              child: DragTarget<String>(
-                builder: (context, candidateData, rejectedData) {
-                  // Pequeño indicador visual de la banda activa
-                  return Container(
-                    decoration: BoxDecoration(
-                      border: index == activeBandIndex && bands[index] == 'none'
-                          ? Border.all(color: Colors.purple.shade700, width: 3)
-                          : null,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  );
-                },
-                onWillAcceptWithDetails: (data) => index == activeBandIndex, // Solo acepta en la banda activa
-                onAcceptWithDetails: (data) {
-                  onBandDrop(data.data, index);
-                },
-              ),
-            );
-          }),
-        ),
+      child: Stack(
+        children: [
+          // Fondo con la resistencia pintada
+          CustomPaint(
+            painter: ResistorPainter(bands: bands),
+            size: Size.infinite,
+          ),
+          // Zonas de arrastre superpuestas
+          Row(
+            children: List.generate(4, (index) {
+              return Expanded(
+                flex: index == 3 ? 2 : 1,
+                child: DragTarget<String>(
+                  builder: (context, candidateData, rejectedData) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 40),
+                      decoration: BoxDecoration(
+                        border: index == activeBandIndex && bands[index] == 'none'
+                            ? Border.all(color: Colors.purple.shade700, width: 3)
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                        color: candidateData.isNotEmpty 
+                            ? Colors.purple.withOpacity(0.3)
+                            : Colors.transparent,
+                      ),
+                      child: Center(
+                        child: bands[index] != 'none'
+                            ? null
+                            : Icon(
+                                Icons.add_circle_outline,
+                                color: index == activeBandIndex 
+                                    ? Colors.purple.shade700 
+                                    : Colors.grey,
+                                size: 24,
+                              ),
+                      ),
+                    );
+                  },
+                  onWillAccept: (data) => index == activeBandIndex,
+                  onAccept: (data) {
+                    onBandDrop(data, index);
+                  },
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }

@@ -43,6 +43,29 @@ final List<String> allDigitColors = colorBands.keys.where((k) => colorBands[k]!.
 final List<String> multiplierColors = colorBands.keys.where((k) => colorBands[k]!.multiplier > 0.0).toList();
 final List<String> toleranceColors = colorBands.keys.where((k) => colorBands[k]!.tolerance > 0.0).toList();
 
+// --- MODELO DEL RESULTADO ---
+class ResistorValue {
+  final double value; // En Ohmios
+  final double tolerance; // En porcentaje
+  final String formattedValue;
+  final String formattedTolerance;
+
+  ResistorValue({
+    required this.value,
+    required this.tolerance,
+  })  : formattedValue = _formatValue(value),
+        formattedTolerance = '±${tolerance.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}%';
+
+  static String _formatValue(double value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(2).replaceAll(RegExp(r'\.0$'), '').replaceAll(RegExp(r'\.00$'), '')}MΩ';
+    } else if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(2).replaceAll(RegExp(r'\.0$'), '').replaceAll(RegExp(r'\.00$'), '')}kΩ';
+    } else {
+      return '${value.toStringAsFixed(0)}Ω';
+    }
+  }
+}
 
 // --- MODELO DEL JUEGO / DESAFÍO ---
 
@@ -91,9 +114,9 @@ class ResistorChallenge {
   // Convierte el valor en una cadena legible (ej: 1000 -> 1kΩ)
   String get formattedTargetValue {
     if (targetValue >= 1000000) {
-      return '${(targetValue / 1000000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}MΩ';
+      return '${(targetValue / 1000000).toStringAsFixed(2).replaceAll(RegExp(r'\.0$'), '').replaceAll(RegExp(r'\.00$'), '')}MΩ';
     } else if (targetValue >= 1000) {
-      return '${(targetValue / 1000).toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}kΩ';
+      return '${(targetValue / 1000).toStringAsFixed(2).replaceAll(RegExp(r'\.0$'), '').replaceAll(RegExp(r'\.00$'), '')}kΩ';
     } else {
       return '${targetValue.toStringAsFixed(0)}Ω';
     }
@@ -106,4 +129,54 @@ class ResistorChallenge {
 
   // Formato completo para mostrar al usuario
   String get formattedChallenge => '$formattedTargetValue $formattedTargetTolerance';
+
+  // Calcula el valor de la resistencia basado en las bandas del usuario
+  static ResistorValue calculateResistorValue(List<String> userBands) {
+    if (userBands.length != 4) {
+      throw ArgumentError('Debe haber exactamente 4 bandas');
+    }
+
+    // Verificar si hay bandas sin seleccionar
+    if (userBands.contains('none')) {
+      throw StateError('Faltan bandas por seleccionar');
+    }
+
+    // Obtener los datos de cada banda
+    final ColorBandData band1 = colorBands[userBands[0]]!;
+    final ColorBandData band2 = colorBands[userBands[1]]!;
+    final ColorBandData band3 = colorBands[userBands[2]]!;
+    final ColorBandData band4 = colorBands[userBands[3]]!;
+
+    // Verificar que las bandas sean válidas para su posición
+    if (band1.digit < 0) {
+      throw ArgumentError('La primera banda debe ser un color de dígito');
+    }
+    if (band2.digit < 0) {
+      throw ArgumentError('La segunda banda debe ser un color de dígito');
+    }
+    if (band3.multiplier <= 0.0) {
+      throw ArgumentError('La tercera banda debe ser un color de multiplicador');
+    }
+    if (band4.tolerance <= 0.0) {
+      throw ArgumentError('La cuarta banda debe ser un color de tolerancia');
+    }
+
+    // Calcular el valor: (D1 * 10 + D2) * Multiplicador
+    final int digit1 = band1.digit;
+    final int digit2 = band2.digit;
+    final double multiplier = band3.multiplier;
+    final double tolerance = band4.tolerance * 100; // Convertir a porcentaje
+
+    final double value = (digit1 * 10 + digit2) * multiplier;
+
+    return ResistorValue(
+      value: value,
+      tolerance: tolerance,
+    );
+  }
+
+  // Método auxiliar para obtener los nombres de las bandas
+  static String getBandNames(List<String> bands) {
+    return bands.map((band) => colorBands[band]?.name ?? 'Desconocido').join(' - ');
+  }
 }
