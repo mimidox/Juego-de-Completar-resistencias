@@ -22,7 +22,7 @@ class ColorBandData {
 
 // Mapa de colores con sus propiedades
 const Map<String, ColorBandData> colorBands = {
-  'black': ColorBandData(color: Colors.black, name: 'Negro', digit: 0, multiplier: 1.0, tolerance: 0.0),
+  'black': ColorBandData(color: Colors.black, name: 'Negro', digit: 0, multiplier: 1.0),
   'brown': ColorBandData(color: Color(0xFF8B4513), name: 'Marrón', digit: 1, multiplier: 10.0, tolerance: 0.01),
   'red': ColorBandData(color: Colors.red, name: 'Rojo', digit: 2, multiplier: 100.0, tolerance: 0.02),
   'orange': ColorBandData(color: Colors.orange, name: 'Naranja', digit: 3, multiplier: 1000.0),
@@ -37,18 +37,18 @@ const Map<String, ColorBandData> colorBands = {
   'none': ColorBandData(color: Colors.transparent, name: 'Sin Banda', tolerance: 0.20),
 };
 
-// Listas de colores permitidos para cada banda
-final List<String> digitColors = colorBands.keys.where((k) => colorBands[k]!.digit >= 0 && k != 'black').toList(); // No negro para primera banda
-final List<String> allDigitColors = colorBands.keys.where((k) => colorBands[k]!.digit >= 0).toList(); // Todos para segunda banda
-final List<String> multiplierColors = colorBands.keys.where((k) => colorBands[k]!.multiplier > 0.0).toList();
-final List<String> toleranceColors = colorBands.keys.where((k) => colorBands[k]!.tolerance > 0.0).toList();
+// Listas de colores permitidos para cada banda - ASEGURAR QUE ORO Y PLATA ESTÉN
+final List<String> digitColors = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'];
+final List<String> allDigitColors = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white'];
+final List<String> multiplierColors = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'blue', 'violet', 'grey', 'white', 'gold', 'silver'];
+final List<String> toleranceColors = ['brown', 'red', 'green', 'blue', 'violet', 'grey', 'gold', 'silver'];
 
 // --- MODELO DEL RESULTADO ---
 class ResistorValue {
   final double value; // En Ohmios
   final double tolerance; // En porcentaje
-  final String formattedValue;
-  final String formattedTolerance;
+  final String formattedValue; // Ej: 1kΩ, 4.7MΩ
+  final String formattedTolerance; // Ej: ±5%
 
   ResistorValue({
     required this.value,
@@ -84,7 +84,7 @@ class ResistorChallenge {
   static ResistorChallenge generateRandom() {
     final Random random = Random();
 
-    // 1. Elegir colores para Digito 1 y Digito 2 (no negro en D1)
+    // 1. Elegir colores para Digito 1 y Digito 2
     String band1Key = digitColors[random.nextInt(digitColors.length)];
     String band2Key = allDigitColors[random.nextInt(allDigitColors.length)];
 
@@ -93,6 +93,9 @@ class ResistorChallenge {
 
     // 3. Elegir color para Tolerancia
     String band4Key = toleranceColors[random.nextInt(toleranceColors.length)];
+
+    // DEBUG: Verificar los colores seleccionados
+    print('Colores correctos: $band1Key, $band2Key, $band3Key, $band4Key');
 
     // Obtener valores
     final int digit1 = colorBands[band1Key]!.digit;

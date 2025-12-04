@@ -27,27 +27,31 @@ class ColorPalette extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = colorsToShow;
 
+    // DEBUG: Verificar qué colores se están mostrando
+    print('Colores mostrados para banda $currentBandIndex: $colors');
+
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.4),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        // MÁS COLUMNAS para colores más pequeños
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5,
-          crossAxisSpacing: 10.0,
-          mainAxisSpacing: 10.0,
+          crossAxisCount: 6, // Más columnas = colores más pequeños
+          crossAxisSpacing: 8.0,
+          mainAxisSpacing: 8.0,
           childAspectRatio: 1.0,
         ),
         itemCount: colors.length,
@@ -85,43 +89,117 @@ class ColorChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isBlack = color == Colors.black;
+    final bool isWhite = color == Colors.white;
+    final bool isGold = colorKey == 'gold';
+    final bool isSilver = colorKey == 'silver';
+    final bool isLightColor = isWhite || isGold || isSilver;
 
-    // Draggable permite arrastrar el widget
+    // TAMAÑO MÁS PEQUEÑO
     return Draggable<String>(
       data: colorKey,
       feedback: Container(
-        width: 40,
+        width: 40, // Más pequeño
         height: 40,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(8),
-          border: isBlack ? Border.all(color: Colors.white, width: 1) : null,
+          borderRadius: BorderRadius.circular(6),
+          border: isBlack || isLightColor 
+              ? Border.all(color: Colors.black, width: 2) 
+              : Border.all(color: Colors.black38, width: 1),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.5),
-              blurRadius: 10,
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             )
           ],
         ),
+        child: _getColorContent(),
       ),
-      childWhenDragging: Container(), // No mostrar nada en la paleta mientras se arrastra
-      // InkWell permite hacer tap rápido para seleccionar el color
+      childWhenDragging: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.grey),
+        ),
+      ),
       child: InkWell(
         onTap: () => onTap(colorKey),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         child: Tooltip(
           message: name,
+          waitDuration: const Duration(milliseconds: 500),
           child: Container(
+            width: 40, // Más pequeño
+            height: 40,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                  color: isBlack ? Colors.white54 : Colors.black12,
-                  width: 1),
+                color: isBlack || isLightColor 
+                    ? Colors.black 
+                    : Colors.black38,
+                width: 1.5,
+              ),
             ),
+            child: _getColorContent(),
           ),
         ),
       ),
     );
+  }
+
+  Widget _getColorContent() {
+    if (colorKey == 'black') {
+      return Center(
+        child: Text(
+          'N',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12, // Más pequeño
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else if (colorKey == 'gold') {
+      return Center(
+        child: Text(
+          'ORO',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 8, // Más pequeño
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else if (colorKey == 'silver') {
+      return Center(
+        child: Text(
+          'PLATA',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 7, // Más pequeño
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    } else if (color == Colors.white) {
+      return Center(
+        child: Text(
+          'BCO',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 8, // Más pequeño
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return const SizedBox();
   }
 }

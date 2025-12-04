@@ -25,8 +25,8 @@ class ResistorColorApp extends StatelessWidget {
       // Rutas de navegación para las diferentes pantallas
       routes: {
         '/': (context) => const PantallaInicio(),
-        '/game': (context) => const PantallaJuego(),
-        '/instructions': (context) => const PantallaInstrucciones(),
+        '/game': (context) => PantallaJuego(),
+        '/instructions': (context) =>  PantallaInstrucciones(),
       },
     );
   }

@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:resistencia_juego/screens/pantalla_instrucciones.dart';
+import 'pantalla_instrucciones.dart';
 import 'resistor_data.dart';
 import 'pantalla_pista.dart';
 import '../widgets/resistor_painter.dart';
 import '../widgets/color_pallette.dart';
+import 'package:audioplayers/audioplayers.dart'; 
 
 // Pantalla principal del juego donde el usuario construye la resistencia
 class PantallaJuego extends StatefulWidget {
-  const PantallaJuego({super.key});
+  PantallaJuego({super.key}); // QUITADO: const
 
   @override
   State<PantallaJuego> createState() => _PantallaJuegoState();
 }
 
 class _PantallaJuegoState extends State<PantallaJuego> {
+  final AudioPlayer sonidobien = AudioPlayer();
+  final AudioPlayer sonidomal = AudioPlayer();
   late ResistorChallenge challenge;
   List<String> userBands = ['none', 'none', 'none', 'none']; // Bandas seleccionadas por el usuario
   int currentBandIndex = 0; // Banda que se está intentando arrastrar/asignar
@@ -24,6 +27,12 @@ class _PantallaJuegoState extends State<PantallaJuego> {
   void initState() {
     super.initState();
     _startNewChallenge();
+  }
+  
+  void dispose() {
+    sonidobien.dispose();
+    sonidomal.dispose();
+    super.dispose();
   }
 
   // Inicia o reinicia el desafío de la resistencia
@@ -84,12 +93,26 @@ class _PantallaJuegoState extends State<PantallaJuego> {
       return 'Valor inválido';
     }
   }
-
+        Future<void> _playCorrectSound() async {
+          try {
+            await sonidobien.play(AssetSource('sounds/correct.mp3'));
+          } catch (e) {
+            print('Error playing correct sound: $e');
+          }
+        }
+        Future<void> _playWrongSound() async {
+          try {
+            await sonidomal.play(AssetSource('sounds/wrong.mp3'));
+          } catch (e) {
+            print('Error playing wrong sound: $e');
+          }
+        }
   // Verifica la respuesta del usuario
   void _checkAnswer() {
     if (userBands.contains('none')) {
       setState(() {
         feedbackMessage = '¡Faltan bandas por colocar!';
+
       });
       return;
     }
@@ -99,6 +122,9 @@ class _PantallaJuegoState extends State<PantallaJuego> {
       setState(() {
         isCorrect = true;
         feedbackMessage = '¡Correcto!';
+        //sonidobien.play(AssetSource('sounds/correct.mp3'));
+        _playCorrectSound();
+
       });
       _showResultDialog(
         '¡CORRECTO!',
@@ -110,6 +136,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
       setState(() {
         isCorrect = false;
         feedbackMessage = 'Incorrecto. Revisa el orden o los valores.';
+        _playWrongSound();
       });
       _showResultDialog(
         'INCORRECTO',
@@ -276,7 +303,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.help),
+            icon: const Icon(Icons.help),
             onPressed: () {
               Navigator.push(
                 context,
@@ -359,7 +386,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const PantallaPista()),
+                        MaterialPageRoute(builder: (_) => PantallaPista()), // QUITADO: const
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -368,8 +395,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                       padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: const Text('HINT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),),
-                    
+                    child: const Text('HINT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
@@ -393,12 +419,11 @@ class _PantallaJuegoState extends State<PantallaJuego> {
               Align(
                 alignment: Alignment.center,
                 child: ElevatedButton(
-                  
                   onPressed: _resetCurrentChallenge,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[600],
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15,),
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                   child: const Text(
@@ -410,9 +435,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                   ),
                 ),
               ),
-              
               const SizedBox(height: 30),
-
               // Paleta de Colores
               ColorPalette(
                 onColorTap: _handleColorTap,
@@ -424,6 +447,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
       ),
     );
   }
+
 }
 
 // Widget interactivo para la resistencia (zonas de arrastre)
@@ -494,4 +518,5 @@ class ResistorInteractive extends StatelessWidget {
       ),
     );
   }
+
 }
